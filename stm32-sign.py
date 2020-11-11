@@ -49,7 +49,7 @@ def unpack_header(image):
 def repack_header(image, stm32):
 	""" Put the data back into an STM32 header """
 	fmt = '<4s64s10I64s83xB'
-	image[0:100] = struct.pack(fmt,
+	image[0:256] = struct.pack(fmt,
 				   stm32['magic'],
 				   stm32['signature'],
 				   stm32['checksum'],
