@@ -25,6 +25,10 @@ must already have an STM32 header (e.g. u-boot-spl.stm32).
 	$ ./stm32-sign.py --help
 	$ ./stm32-sign.py --key-file <public_key.pem> --verify <image.stm32>
 
+To sign an STM32 image:
+
+	$ ./stm32-sign.py --key-file <private_key.pem> --sign <image.stm32> --output <image-signed.stm32>
+
 
 ## Developer tools
 

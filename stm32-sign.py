@@ -46,6 +46,60 @@ def unpack_header(image):
 
 	return stm32
 
+def repack_header(image, stm32):
+	""" Put the data back into an STM32 header """
+	fmt = '<4s64s10I64s83xB'
+	image[0:100] = struct.pack(fmt,
+				   stm32['magic'],
+				   stm32['signature'],
+				   stm32['checksum'],
+				   stm32['hdr_version'],
+				   stm32['length'],
+				   stm32['entry_addr'],
+				   0,
+				   stm32['load_addr'],
+				   0,
+				   stm32['hdr_version'],
+				   stm32['option_flags'],
+				   stm32['ecdsa_algo'],
+				   stm32['ecdsa_pubkey'],
+				   0
+		)
+
+def key_algorithm(key):
+	""" Get the ecdsa algorithm ID for the STM32 header """
+	p256_names = ['NIST P-256', 'p256', 'P-256', 'prime256v1', 'secp256r1']
+	brainpool_names = []
+
+	if key.curve in p256_names:
+		return 1
+	if key.curve in brainpool_names:
+		return 2
+
+	raise ValueError('Unsupported ECDSA curve "%s"' % key.curve)
+
+
+def sign_image(image, key):
+	""" Sign an image with the given private key """
+	stm32 = unpack_header(image)
+
+	if stm32['magic'] != b'STM2':
+		LOG.error('Not an STM32 header (signature FAIL)')
+		return -1
+
+	stm32['ecdsa_pubkey'] = get_raw_pubkey(key)
+	stm32['ecdsa_algo'] = key_algorithm(key)
+	stm32['option_flags'] = 0
+	repack_header(image, stm32)
+
+	sha = SHA256.new(image[0x48:])
+	signatory = DSS.new(key, 'fips-186-3')
+	image[0x04:0x44] = signatory.sign(sha)
+
+	verify_signature(image, key)
+
+	LOG.debug('Signature: %s', stm32['signature'].hex())
+	return 0
 
 def verify_signature(image, key):
 	""" Verify the signature of the binary  """
@@ -83,6 +137,9 @@ def main():
 	parser.add_option('-k', '--key-file', dest='key_file',
 			  help='PEM file containing the ECDSA key')
 
+	parser.add_option('-p', '--passphrase', dest='keypass',
+			  help='Passphrase for private key, if applicable')
+
 	parser.add_option('-v', '--verbose', dest='verbose', action="store_true",
 			  help='Output informative messages')
 
@@ -91,6 +148,12 @@ def main():
 
 	parser.add_option('-e', '--verify', dest='verify_file',
 			  help='Verify signature of STM32 image')
+
+	parser.add_option('-s', '--sign', dest='sign',
+			  help='Sign a STM32 image')
+
+	parser.add_option('-o', '--output', dest='outfile',
+			  help='Passphrase for private key, if applicable')
 
 	options, _ = parser.parse_args()
 
@@ -105,8 +168,20 @@ def main():
 		LOG.setLevel('INFO')
 
 	with open(options.key_file) as keyfile:
-		key = ECC.import_key(keyfile.read())
+		key = ECC.import_key(keyfile.read(), passphrase=options.keypass)
 
+	if options.sign:
+		if not key.has_private():
+			LOG.error('The private key is required for signing')
+			return 1
+
+		with open(options.sign, 'rb') as image:
+			data = bytearray(image.read())
+			sign_image(data, key)
+
+		if options.outfile:
+			with open(options.outfile, 'wb') as out:
+				out.write(data)
 
 	if options.verify_file:
 		try:
