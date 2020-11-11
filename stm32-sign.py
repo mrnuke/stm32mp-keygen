@@ -39,7 +39,7 @@ def unpack_header(image):
 	stm32['length'] = fields[4]
 	stm32['entry_addr'] = fields[5]
 	stm32['load_addr'] = fields[7]
-	stm32['hdr_version'] = fields[9]
+	stm32['rollback_version'] = fields[9]
 	stm32['option_flags'] = fields[10]
 	stm32['ecdsa_algo'] = fields[11]
 	stm32['ecdsa_pubkey'] = fields[12]
@@ -59,7 +59,7 @@ def repack_header(image, stm32):
 				   0,
 				   stm32['load_addr'],
 				   0,
-				   stm32['hdr_version'],
+				   stm32['rollback_version'],
 				   stm32['option_flags'],
 				   stm32['ecdsa_algo'],
 				   stm32['ecdsa_pubkey'],
