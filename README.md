@@ -17,6 +17,15 @@ The __ecdsa-sha256.py__ is provided for this purpose:
 
 	$ ./ecdsa-sha256.py --public-key=<public_key.pem> --binhash-file=<hash.bin>
 
+## Signing and veryfying images
+
+STM32 images can be checked and signed with __stm32-sign.py__. Note that images
+must already have an STM32 header (e.g. u-boot-spl.stm32).
+
+	$ ./stm32-sign.py --help
+	$ ./stm32-sign.py --key-file <public_key.pem> --verify <image.stm32>
+
+
 ## Developer tools
 
 ### Testing utilities
