@@ -29,7 +29,7 @@ def get_raw_pubkey(key):
 def unpack_header(image):
 	""" Decode an STM32 header into a human-readable dictionary """
 	fmt = '<4s64s10I64s83xB'
-	fields = struct.unpack(fmt, image[0:256])
+	fields = struct.unpack_from(fmt, image, 0)
 
 	stm32 = {}
 	stm32['magic'] = fields[0]
@@ -49,21 +49,21 @@ def unpack_header(image):
 def repack_header(image, stm32):
 	""" Put the data back into an STM32 header """
 	fmt = '<4s64s10I64s83xB'
-	image[0:256] = struct.pack(fmt,
-				   stm32['magic'],
-				   stm32['signature'],
-				   stm32['checksum'],
-				   stm32['hdr_version'],
-				   stm32['length'],
-				   stm32['entry_addr'],
-				   0,
-				   stm32['load_addr'],
-				   0,
-				   stm32['rollback_version'],
-				   stm32['option_flags'],
-				   stm32['ecdsa_algo'],
-				   stm32['ecdsa_pubkey'],
-				   0
+	struct.pack_into(fmt, image, 0,
+			 stm32['magic'],
+			 stm32['signature'],
+			 stm32['checksum'],
+			 stm32['hdr_version'],
+			 stm32['length'],
+			 stm32['entry_addr'],
+			 0,
+			 stm32['load_addr'],
+			 0,
+			 stm32['rollback_version'],
+			 stm32['option_flags'],
+			 stm32['ecdsa_algo'],
+			 stm32['ecdsa_pubkey'],
+			 0
 		)
 
 def key_algorithm(key):
